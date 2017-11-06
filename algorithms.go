@@ -1,7 +1,7 @@
 package reedSolomon
 
 func forney(msgIn, errorPolynomial, locationPolynomial, errPos []int, fcr int) []int {
-	E := make([]int, len(msgIn)) // will store the values that need to be corrected (substracted) to the message containing errors. This is sometimes called the error magnitude polynomial.
+	E := make([]int, len(msgIn)) // will store the values that need to be corrected (subtracted) to the message containing errors. This is sometimes called the error magnitude polynomial.
 
 	for i, location := range locationPolynomial {
 

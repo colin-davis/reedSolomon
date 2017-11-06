@@ -16,7 +16,7 @@ func TestMain(m *testing.M) {
 var encodedMsg = []int{68, 90, 46, 145, 46, 131, 153, 53, 32, 43, 239, 193, 240, 155, 85, 215, 63, 202}
 
 func TestInitGaloisFields(t *testing.T) {
-	t.Log("Testing precomputing galois field tables with primative value 301")
+	t.Log("Testing precomputing galois field tables with primitive value 301")
 
 	// Test exponents table
 	if len(exponents) != 510 {

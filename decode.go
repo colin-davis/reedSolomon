@@ -34,7 +34,7 @@ func InitGaloisFields(prim int, firstConsecutiveRoot int) error {
 		x <<= 1           // Bitwise multiply by 2 (change 1 by another number y to multiply by a power of 2^y)
 		if x&0x100 != 0 { // similar to x >= 256, but a lot faster (because 0x100 == 256)
 			// Rolls over the value from 256 back to 0 and then up again
-			x ^= prim // substract the primary polynomial to the current value (instead of 255, so that we get a unique set made of coprime numbers), this is the core of the tables generation
+			x ^= prim // subtract the primary polynomial to the current value (instead of 255, so that we get a unique set made of coprime numbers), this is the core of the tables generation
 		}
 	}
 
@@ -194,7 +194,7 @@ func calcErrorPolynomial(synd, errorLocatorPolynomial []int, nsym int) []int {
 }
 
 // Find error/errata locator and evaluator polynomials with Berlekamp-Massey algorithm
-// NOTE: If forney syndromes are provided then use and emtpy erasureLoc slice as the erasures are not part of the forney syndrome
+// NOTE: If forney syndromes are provided then use and empty erasureLoc slice as the erasures are not part of the forney syndrome
 func unknownErrorLocator(synd, erasureLoc []int, nsym, erasureCount int) ([]int, error) {
 
 	// The idea is that BM will iteratively estimate the error locator polynomial.
@@ -303,7 +303,7 @@ func correctErrors(msgIn, synd, errPos []int) []int {
 
 	// Apply the correction of values to get our message corrected! (note that the ecc bytes also gets corrected!)
 	// (this isn't the Forney algorithm, we just apply the result of decoding here)
-	msgIn = gfPolynomialAddition(msgIn, E) // equivalent to Ci = Ri - Ei where Ci is the correct message, Ri the received (senseword) message, and Ei the errata magnitudes (minus is replaced by XOR since it's equivalent in GF(2^p)). So in fact here we substract from the received message the errors magnitude, which logically corrects the value to what it should be.
+	msgIn = gfPolynomialAddition(msgIn, E) // equivalent to Ci = Ri - Ei where Ci is the correct message, Ri the received (senseword) message, and Ei the errata magnitudes (minus is replaced by XOR since it's equivalent in GF(2^p)). So in fact here we subtract from the received message the errors magnitude, which logically corrects the value to what it should be.
 
 	return msgIn
 }
