@@ -4,7 +4,7 @@ ____
 
 PROJECT STATE: `BETA`
 
-This project has been tested for use with datamatrix decoding and performs accurately. If you find an error when using this for another application please create an issue with sufficient information or submit a PR.
+This project has been tested for use with datamatrix codes and QR-Codes and performs accurately. If you find an error when using this for another application please create an issue with sufficient information or submit a PR.
 
 ---
 
@@ -15,20 +15,9 @@ With a [correctly configured](https://golang.org/doc/install#testing) Go toolcha
 `go get -u github.com/colin-davis/reedSolomon`
 
 ---
-## Initializing Look Up Tables
 
-Before using the decoder you will have to initialize the precomputed Galois Field look up tables that are used by the algorithm.
-To do so you will need to provide the **Primative** and the **First Consecutive Root**. Every different system uses different values for this...
-Below are some default values (If you find one that is not listed please let me know or submit and PR to the readme).
+## Explanation
 
-|            | Primative | FCR |
-|------------|-----------|-----|
-| QR-Codes   | 285       | 0   |
-| Datamatrix | 301       | 1   |
-
-## Examples
-
-### Preamble
 A Reed-Solomon encoded message is made up of two parts:
 1. The encoded message symbols
 2. The error correcting code symbols (ECC)
@@ -47,6 +36,20 @@ The algorithm can correct up to t erroneous symbols (t = the number of ECC symbo
 
 Therefore, the algorithm can correct up to t erasures because it does not need to locate the errors. Whereas the algorithm can only correct t/2 errors, because it has to locate the error first and then correct the error.
 
+
+## Initializing Look Up Tables
+
+Before using the decoder you will have to initialize the precomputed Galois Field look up tables that are used by the algorithm.
+To do so you will need to provide the **Primative** and the **First Consecutive Root**. Every different system uses different values for this...
+Below are some default values (If you find one that is not listed please let me know or submit and PR to the readme).
+
+|            | Primative | FCR |
+|------------|-----------|-----|
+| QR-Codes   | 285       | 0   |
+| Datamatrix | 301       | 1   |
+
+## Examples
+
 ### Example 1: message with no errors
 (The following examples use an ascii coded "hello world" message)
 ```go
@@ -58,11 +61,8 @@ import (
 
 func main() {
 
-  // First we have to initialize the Galois Field Look Up Tables
-  // This takes a "primitive" value that is different for each application...
-  // For default QR-Codes use 285
-  // For default Datamatrix use 301
-
+  // Initialize the Galois Field Look Up Tables
+  // We are using a QR-Code encoded message so we use 285 and 0
   reedSolomon.InitGaloisFields(285, 0)
 
   // Get the Reed-Solomon encoded message as an int slice
@@ -178,12 +178,7 @@ func main() {
   - Datamatrix
   - Qr Codes
 
-If you have used this for something not of the list let me know.
-
-
-## Known issues:
-
-  - First Consecutive Root (fcr) is currently hard coded to "1" (which works for datamatrix decoding but may need to be changed for other applications)
+If you have used this for something not on the list let me know so I can add it.
 
 ## TODO
  - Some code is still resembles the python origins and could be optimized or improved for GO.
