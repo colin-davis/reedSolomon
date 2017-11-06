@@ -189,4 +189,5 @@ If you have used this for something not on the list let me know so I can add it.
 
 ## Acknowledgments
 
-This package was inspired from the python code at https://en.wikiversity.org/wiki/Reed-Solomon_codes_for_coders
+This package was inspired from the python code at 
+[Wikiversity: Reed-Solomon For Coders](https://en.wikiversity.org/wiki/Reed%E2%80%93Solomon_codes_for_coders)
