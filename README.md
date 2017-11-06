@@ -1,5 +1,6 @@
 # Reed-Solomon Error Correcting Algorithm
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/colin-davis/reedSolomon)](https://goreportcard.com/report/github.com/colin-davis/reedSolomon)
 ____
 
 PROJECT STATE: `BETA`
