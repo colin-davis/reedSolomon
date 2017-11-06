@@ -61,11 +61,8 @@ import (
 
 func main() {
 
-  // First we have to initialize the Galois Field Look Up Tables
-  // This takes a "primitive" value that is different for each application...
-  // For default QR-Codes use 285
-  // For default Datamatrix use 301
-
+  // Initialize the Galois Field Look Up Tables
+  // We are using a QR-Code encoded message so we use 285 and 0
   reedSolomon.InitGaloisFields(285, 0)
 
   // Get the Reed-Solomon encoded message as an int slice
@@ -181,12 +178,7 @@ func main() {
   - Datamatrix
   - Qr Codes
 
-If you have used this for something not of the list let me know.
-
-
-## Known issues:
-
-  - First Consecutive Root (fcr) is currently hard coded to "1" (which works for datamatrix decoding but may need to be changed for other applications)
+If you have used this for something not on the list let me know so I can add it.
 
 ## TODO
  - Some code is still resembles the python origins and could be optimized or improved for GO.
