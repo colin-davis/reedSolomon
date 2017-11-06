@@ -6,7 +6,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	initGaloisFields(301) // test are written to work with 301
+	InitGaloisFields(301) // test are written to work with 301
 	// 301 for datamatrix
 	// 285 for qr codes
 

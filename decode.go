@@ -8,13 +8,14 @@ import (
 var exponents [510]int // # anti-log (exponential) table. The first two elements will always be [GF256int(1), generator]
 var logs [256]int      // log table, log[0] is impossible and thus unused
 
-// This package was orignally inspired and translated from the python code version at
-// https://en.wikiversity.org/wiki/Reed%E2%80%93Solomon_codes_for_coders
+// ==========================================
+//             Exported Methods
+// ==========================================
 
-// Precompute the logarithm and anti-log tables for faster computation later, using the provided primitive polynomial.
+// InitGaloisFields precomputes the logarithm and anti-log tables for faster computation later, using the provided primitive polynomial.
 // prim is the primitive (binary) polynomial. Since it's a polynomial in the binary sense,
 // it's only in fact a single galois field value between 0 and 255, and not a list of gf values.
-func initGaloisFields(prim int) error {
+func InitGaloisFields(prim int) error {
 	// For each possible value in the galois field 2^8, we will pre-compute the logarithm and anti-logarithm (exponential) of this value
 	x := 1
 	for i := 0; i < 255; i++ {
@@ -42,6 +43,89 @@ func initGaloisFields(prim int) error {
 
 	return nil
 }
+
+// Decode takes a Reed-Solomon encdoded msg (as an int slice) and corrects the errors and erasures returning the correct string
+// Errors cost 2 each: therefore you can correct half the errors as the amount of error correction symbols appended to the message
+// IE: if the message has 8 ECC symbols than up to 4 errors can be corrected
+// Erasures cost 1 each: therefore you can correct as many erasure as the amount of error correction symbols appended to the message
+// IE: if the message has 8 ECC symbols than up to 8 erasure as long as the erased position is provided
+func Decode(msg []int, numberEccSymbols int, erasedIndices []int) ([]int, []int, error) {
+	// Reed-Solomon main decoding function
+
+	if len(msg) > 255 { // can't decode, message is too big
+		return []int{}, []int{}, fmt.Errorf("Message is too long (%d when max is 255)", len(msg))
+	}
+
+	msgOut := msg // copy
+
+	// erasures: set them to null bytes for easier decoding (but this is not necessary, they will be corrected anyway,
+	// but debugging will be easier with null bytes because the error locator polynomial values will
+	// only depend on the errors locations, not their values)
+
+	if len(erasedIndices) == 0 {
+		erasedIndices = []int{}
+	} else {
+		for _, ePos := range erasedIndices {
+			msgOut[ePos] = 0
+		}
+	}
+
+	// check if there are too many erasures to correct (beyond the Singleton bound)
+	if len(erasedIndices) > numberEccSymbols {
+		return []int{}, []int{}, errors.New("Too many erasures to correct")
+	}
+
+	// prepare the syndrome polynomial using only errors (ie: errors = characters that were either replaced by null byte
+	// or changed to another character, but we don't know their positions)
+	synd := calculateSyndromes(msgOut, numberEccSymbols)
+
+	// check if there's any error/erasure in the input codeword.
+	// If not (all syndromes coefficients are 0), then just return the message as-is.
+	if isSyndromeClean(synd) {
+		m := len(msgOut) - numberEccSymbols
+		return msgOut[:m], msgOut[m:], nil // no errors
+	}
+
+	// compute the Forney syndromes, which hide the erasures from the original syndrome (so that BM will just have to deal with errors, not erasures)
+	fsynd := calcForneySyndromes(synd, erasedIndices, len(msgOut))
+
+	// compute the error locator polynomial using Berlekamp-Massey
+	// NOTE: when using forney syndromes DO NOT pass the erasure positions
+	errLoc, err := unknownErrorLocator(fsynd, []int{}, numberEccSymbols, len(erasedIndices))
+	if err != nil {
+		return []int{}, []int{}, err
+	}
+
+	// locate the message errors using Chien search (or brute-force search)
+	errPos, err := findErrors(sliceIntReverse(errLoc), len(msgOut))
+
+	if err != nil {
+		return []int{}, []int{}, err // error location failed
+	}
+	if len(errPos) == 0 && len(erasedIndices) == 0 {
+		return []int{}, []int{}, errors.New("Could not calculate error positions") // error location failed
+	}
+
+	// Find errors values and apply them to correct the message
+	// compute errata evaluator and errata magnitude polynomials, then correct errors and erasures
+	msgOut = correctErrors(msgOut, synd, append(erasedIndices, errPos...)) // note that we here use the original syndrome, not the forney syndrome
+
+	// (because we will correct both errors and erasures, so we need the full syndrome)
+	// check if the final message is fully repaired
+	synd = calculateSyndromes(msgOut, numberEccSymbols)
+
+	if !isSyndromeClean(synd) {
+		return []int{}, []int{}, errors.New("Could not correct message") // message could not be repaired
+	}
+
+	// return the successfully decoded message
+	m := len(msgOut) - numberEccSymbols
+	return msgOut[:m], msgOut[m:], nil // also return the corrected ecc block so that the user can check()
+}
+
+// ==========================================
+//             Unexported Methods
+// ==========================================
 
 // Given the received codeword msg and the number of error correcting symbols (nsym), this computes the syndromes polynomial.
 // Mathematically, it's essentially equivalent to a Fourrier Transform (Chien search being the inverse).
@@ -274,87 +358,4 @@ func calcForneySyndromes(synd, pos []int, msgLen int) []int {
 	//fsynd = fsynd[len(pos):] // then trim the first erase_pos coefficients which are useless. Seems to be not necessary, but this reduces the computation time later in BM (thus it's an optimization).
 
 	return fsynd
-}
-
-// ==========================================
-//             Exported Methods
-// ==========================================
-
-// Decode takes a Reed-Solomon encdoded msg (as an int slice) and corrects the errors and erasures returning the correct string
-// Errors cost 2 each: therefore you can correct half the errors as the amount of error correction symbols appended to the message
-// IE: if the message has 8 ECC symbols than up to 4 errors can be corrected
-// Erasures cost 1 each: therefore you can correct as many erasure as the amount of error correction symbols appended to the message
-// IE: if the message has 8 ECC symbols than up to 8 erasure as long as the erased position is provided
-func Decode(msg []int, numberEccSymbols int, erasedIndices []int) ([]int, []int, error) {
-	// Reed-Solomon main decoding function
-
-	if len(msg) > 255 { // can't decode, message is too big
-		return []int{}, []int{}, fmt.Errorf("Message is too long (%d when max is 255)", len(msg))
-	}
-
-	msgOut := msg // copy
-
-	// erasures: set them to null bytes for easier decoding (but this is not necessary, they will be corrected anyway,
-	// but debugging will be easier with null bytes because the error locator polynomial values will
-	// only depend on the errors locations, not their values)
-
-	if len(erasedIndices) == 0 {
-		erasedIndices = []int{}
-	} else {
-		for _, ePos := range erasedIndices {
-			msgOut[ePos] = 0
-		}
-	}
-
-	// check if there are too many erasures to correct (beyond the Singleton bound)
-	if len(erasedIndices) > numberEccSymbols {
-		return []int{}, []int{}, errors.New("Too many erasures to correct")
-	}
-
-	// prepare the syndrome polynomial using only errors (ie: errors = characters that were either replaced by null byte
-	// or changed to another character, but we don't know their positions)
-	synd := calculateSyndromes(msgOut, numberEccSymbols)
-
-	// check if there's any error/erasure in the input codeword.
-	// If not (all syndromes coefficients are 0), then just return the message as-is.
-	if isSyndromeClean(synd) {
-		m := len(msgOut) - numberEccSymbols
-		return msgOut[:m], msgOut[m:], nil // no errors
-	}
-
-	// compute the Forney syndromes, which hide the erasures from the original syndrome (so that BM will just have to deal with errors, not erasures)
-	fsynd := calcForneySyndromes(synd, erasedIndices, len(msgOut))
-
-	// compute the error locator polynomial using Berlekamp-Massey
-	// NOTE: when using forney syndromes DO NOT pass the erasure positions
-	errLoc, err := unknownErrorLocator(fsynd, []int{}, numberEccSymbols, len(erasedIndices))
-	if err != nil {
-		return []int{}, []int{}, err
-	}
-
-	// locate the message errors using Chien search (or brute-force search)
-	errPos, err := findErrors(sliceIntReverse(errLoc), len(msgOut))
-
-	if err != nil {
-		return []int{}, []int{}, err // error location failed
-	}
-	if len(errPos) == 0 && len(erasedIndices) == 0 {
-		return []int{}, []int{}, errors.New("Could not calculate error positions") // error location failed
-	}
-
-	// Find errors values and apply them to correct the message
-	// compute errata evaluator and errata magnitude polynomials, then correct errors and erasures
-	msgOut = correctErrors(msgOut, synd, append(erasedIndices, errPos...)) // note that we here use the original syndrome, not the forney syndrome
-
-	// (because we will correct both errors and erasures, so we need the full syndrome)
-	// check if the final message is fully repaired
-	synd = calculateSyndromes(msgOut, numberEccSymbols)
-
-	if !isSyndromeClean(synd) {
-		return []int{}, []int{}, errors.New("Could not correct message") // message could not be repaired
-	}
-
-	// return the successfully decoded message
-	m := len(msgOut) - numberEccSymbols
-	return msgOut[:m], msgOut[m:], nil // also return the corrected ecc block so that the user can check()
 }
