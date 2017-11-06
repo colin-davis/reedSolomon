@@ -15,6 +15,16 @@ With a [correctly configured](https://golang.org/doc/install#testing) Go toolcha
 `go get -u github.com/colin-davis/reedSolomon`
 
 ---
+## Initializing Look Up Tables
+
+Before using the decoder you will have to initialize the precomputed Galois Field look up tables that are used by the algorithm.
+To do so you will need to provide the **Primative** and the **First Consecutive Root**. Every different system uses different values for this...
+Below are some default values (If you find one that is not listed please let me know or submit and PR to the readme).
+
+|            | Primative | FCR |
+|------------|-----------|-----|
+| QR-Codes   | 285       | 0   |
+| Datamatrix | 301       | 1   |
 
 ## Examples
 
@@ -41,7 +51,10 @@ Therefore, the algorithm can correct up to t erasures because it does not need t
 (The following examples use an ascii coded "hello world" message)
 ```go
 
-import "github.com/colin-davis/reedSolomon"
+import (
+  "github.com/colin-davis/reedSolomon"
+  "log"
+)
 
 func main() {
 
@@ -50,25 +63,33 @@ func main() {
   // For default QR-Codes use 285
   // For default Datamatrix use 301
 
-  initGaloisFields(285)
+  reedSolomon.InitGaloisFields(285, 0)
 
   // Get the Reed-Solomon encoded message as an int slice
   msg := []int{104, 101, 108, 108, 111,  32, 119, 111, 114, 108, 100, 145, 124, 96, 105, 94, 31, 179, 149, 163} // "hello world"
   numberEccSymbols := 9 // This message has 11 data symbols and 9 ECC symbols
   errorLocations := []int{}
 
-  correctedMsg, correctedEcc, err := reedSolomon.Decode(msg, 9, errorLocations)
+  correctedMsg, correctedEcc, err := reedSolomon.Decode(msg, numberEccSymbols, errorLocations)
+  if err != nil {
+    log.Println(err)
+  }
+
+  log.Printf("\n Corrected MSG: %d \n Corrected ECC: %d", correctedMsg, correctedEcc)
 }
 ```
 
 ### Example 2: message with 4 errors
 ```go
 
-import "github.com/colin-davis/reedSolomon"
+import (
+  "github.com/colin-davis/reedSolomon"
+  "log"
+)
 
 func main() {
 
-  initGaloisFields(285)
+  reedSolomon.InitGaloisFields(285, 0)
 
   msg := []int{104, 101, 108, 108, 111,  32, 119, 111, 114, 108, 100, 145, 124, 96, 105, 94, 31, 179, 149, 163} // "hello world"
   numberEccSymbols := 9
@@ -80,18 +101,26 @@ func main() {
   msg[14] = 2
   msg[17] = 42
 
-  correctedMsg, correctedEcc, err := reedSolomon.Decode(msg, 9, errorLocations)
+  correctedMsg, correctedEcc, err := reedSolomon.Decode(msg, numberEccSymbols, errorLocations)
+  if err != nil {
+    log.Println(err)
+  }
+
+  log.Printf("\n Corrected MSG: %d \n Corrected ECC: %d", correctedMsg, correctedEcc)
 }
 ```
 
 ### Example 3: message with 4 errors (but provide the location of 2 of the errors)
 ```go
 
-import "github.com/colin-davis/reedSolomon"
+import (
+  "github.com/colin-davis/reedSolomon"
+  "log"
+)
 
 func main() {
 
-  initGaloisFields(285)
+  reedSolomon.InitGaloisFields(285, 0)
 
   msg := []int{104, 101, 108, 108, 111,  32, 119, 111, 114, 108, 100, 145, 124, 96, 105, 94, 31, 179, 149, 163} // "hello world"
   numberEccSymbols := 9
@@ -103,7 +132,44 @@ func main() {
   msg[14] = 2
   msg[17] = 42
 
-  correctedMsg, correctedEcc, err := reedSolomon.Decode(msg, 9, errorLocations)
+  correctedMsg, correctedEcc, err := reedSolomon.Decode(msg, numberEccSymbols, errorLocations)
+  if err != nil {
+    log.Println(err)
+  }
+
+  log.Printf("\n Corrected MSG: %d \n Corrected ECC: %d", correctedMsg, correctedEcc)
+}
+```
+
+### Example 4: message with 5 errors (Too many to correct)
+```go
+
+import (
+  "github.com/colin-davis/reedSolomon"
+  "log"
+)
+
+func main() {
+
+  reedSolomon.InitGaloisFields(285, 0)
+
+  msg := []int{104, 101, 108, 108, 111,  32, 119, 111, 114, 108, 100, 145, 124, 96, 105, 94, 31, 179, 149, 163} // "hello world"
+  numberEccSymbols := 9
+  errorLocations := []int{0}
+
+  // Edit the msg to add 5 errors on purpose
+  msg[3] = 11
+  msg[6] = 92
+  msg[7] = 26
+  msg[14] = 2
+  msg[17] = 42
+
+  correctedMsg, correctedEcc, err := reedSolomon.Decode(msg, numberEccSymbols, errorLocations)
+  if err != nil {
+    log.Println(err)
+  }
+
+  log.Printf("\n Corrected MSG: %d \n Corrected ECC: %d", correctedMsg, correctedEcc)
 }
 ```
 

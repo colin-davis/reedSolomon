@@ -7,6 +7,7 @@ import (
 
 var exponents [510]int // # anti-log (exponential) table. The first two elements will always be [GF256int(1), generator]
 var logs [256]int      // log table, log[0] is impossible and thus unused
+var fcr int            // first consecutive root
 
 // ==========================================
 //             Exported Methods
@@ -15,7 +16,10 @@ var logs [256]int      // log table, log[0] is impossible and thus unused
 // InitGaloisFields precomputes the logarithm and anti-log tables for faster computation later, using the provided primitive polynomial.
 // prim is the primitive (binary) polynomial. Since it's a polynomial in the binary sense,
 // it's only in fact a single galois field value between 0 and 255, and not a list of gf values.
-func InitGaloisFields(prim int) error {
+func InitGaloisFields(prim int, firstConsecutiveRoot int) error {
+	// fcr
+	fcr = firstConsecutiveRoot
+
 	// For each possible value in the galois field 2^8, we will pre-compute the logarithm and anti-logarithm (exponential) of this value
 	x := 1
 	for i := 0; i < 255; i++ {
@@ -134,7 +138,7 @@ func calculateSyndromes(msg []int, nsym int) []int {
 	synd := make([]int, nsym) //  Make an empty syndrome slice <--- this is c
 	//msg = append([]int{0}, msg...)
 	for i := 0; i < nsym; i++ {
-		synd[i] = gfPolynomialEval(msg, gfPower(2, i+1)) // TODO: +1 is first consecutive root? might need to change this value for some generators
+		synd[i] = gfPolynomialEval(msg, gfPower(2, i+fcr)) // TODO: +1 is first consecutive root? might need to change this value for some generators
 	}
 
 	// Here we append a 0 coefficient for the lowest degree (the constant). This effectively shifts the
@@ -295,7 +299,7 @@ func correctErrors(msgIn, synd, errPos []int) []int {
 	}
 
 	// Forney algorithm: compute the magnitudes
-	E := forney(msgIn, errorPolynomial, locationPolynomial, errPos)
+	E := forney(msgIn, errorPolynomial, locationPolynomial, errPos, fcr)
 
 	// Apply the correction of values to get our message corrected! (note that the ecc bytes also gets corrected!)
 	// (this isn't the Forney algorithm, we just apply the result of decoding here)

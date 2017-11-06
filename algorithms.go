@@ -1,6 +1,6 @@
 package reedSolomon
 
-func forney(msgIn, errorPolynomial, locationPolynomial, errPos []int) []int {
+func forney(msgIn, errorPolynomial, locationPolynomial, errPos []int, fcr int) []int {
 	E := make([]int, len(msgIn)) // will store the values that need to be corrected (substracted) to the message containing errors. This is sometimes called the error magnitude polynomial.
 
 	for i, location := range locationPolynomial {
@@ -29,7 +29,7 @@ func forney(msgIn, errorPolynomial, locationPolynomial, errPos []int) []int {
 		// This is a more faithful translation of the theoretical equation contrary to the old forney method. Here it is an exact reproduction:
 		// Yl = omega(Xl.inverse()) / prod(1 - Xj*Xl.inverse()) for j in len(X)
 		y := gfPolynomialEval(errorPolynomial, locationInverse) // numerator of the Forney algorithm (errata evaluator evaluated)
-		y = gfMultiplication(gfPower(location, 1-1), y)         // TODO: adjust to fcr parameter -1 (currently hard coded to 1)
+		y = gfMultiplication(gfPower(location, 1-fcr), y)       // TODO: adjust to fcr parameter -1 (currently hard coded to 1)
 
 		// Compute the magnitude
 		magnitude, _ := gfDivision(y, errorLocatorPrime) // magnitude value of the error, calculated by the Forney algorithm (an equation in fact): dividing the errata evaluator with the errata locator derivative gives us the errata magnitude (ie, value to repair) the ith symbol

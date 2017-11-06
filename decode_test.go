@@ -6,9 +6,9 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	InitGaloisFields(301) // test are written to work with 301
-	// 301 for datamatrix
-	// 285 for qr codes
+	InitGaloisFields(301, 1) // test are written to work with 301
+	// 301, 1 for datamatrix
+	// 285, 0 for qr codes
 
 	os.Exit(m.Run())
 }

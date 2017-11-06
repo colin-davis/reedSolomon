@@ -11,9 +11,10 @@ func TestForney(t *testing.T) {
 	errorLocatorPolynomial := []int{157, 152, 30}
 	errorPolynomial := []int{245, 112, 220, 174, 205, 73, 201, 199, 93, 1, 161}
 	errPos := []int{6, 8, 13}
+	fcr = 1
 
 	expected := []int{0, 0, 0, 0, 0, 0, 244, 0, 223, 0, 0, 0, 0, 16, 0, 0, 0, 0}
-	resp := forney(msgIn, errorPolynomial, errorLocatorPolynomial, errPos)
+	resp := forney(msgIn, errorPolynomial, errorLocatorPolynomial, errPos, fcr)
 
 	for i, r := range resp {
 		if r != expected[i] {
