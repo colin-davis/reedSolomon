@@ -1,5 +1,6 @@
 # Reed-Solomon Error Correcting Algorithm
 
+[![Build Status](https://travis-ci.org/colin-davis/reedSolomon.svg?branch=master)](https://travis-ci.org/colin-davis/reedSolomon)
 [![Go Report Card](https://goreportcard.com/badge/github.com/colin-davis/reedSolomon)](https://goreportcard.com/report/github.com/colin-davis/reedSolomon)
 ____
 
